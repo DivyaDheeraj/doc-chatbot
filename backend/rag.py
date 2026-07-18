@@ -89,20 +89,38 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 
 # ---- Embedding ----------------------------------------------------------------
 
+import time
+
 def embed_texts(texts: List[str], task_type: str = "retrieval_document") -> List[List[float]]:
-    """Generate embeddings using Gemini. Batches to stay within API limits."""
+    """Generate embeddings using Gemini. Batches + rate-limits to stay within free tier limits."""
     vectors = []
-    batch_size = 90  # Gemini batch embed limit is 100
+    batch_size = 20  # smaller batches to avoid quota spikes
+    delay_between_batches = 2  # seconds
+
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
-        result = genai.embed_content(
-            model=EMBED_MODEL,
-            content=batch,
-            task_type=task_type,
-        )
-        vectors.extend(result["embedding"])
-    return vectors
 
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                result = genai.embed_content(
+                    model=EMBED_MODEL,
+                    content=batch,
+                    task_type=task_type,
+                )
+                vectors.extend(result["embedding"])
+                break
+            except Exception as e:
+                if "429" in str(e) and attempt < max_retries - 1:
+                    wait_time = 15 * (attempt + 1)  # back off: 15s, 30s, 45s...
+                    print(f"Rate limit hit, waiting {wait_time}s before retry...")
+                    time.sleep(wait_time)
+                else:
+                    raise
+
+        time.sleep(delay_between_batches)
+
+    return vectors
 
 def embed_query(text: str) -> List[float]:
     result = genai.embed_content(
