@@ -209,35 +209,42 @@
         color: var(--accent);
       }
 
-      #docCard {
+     #docCardContainer {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    max-width: 700px;
+  }
+  .docCard {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 32px 40px;
+    padding: 24px 28px;
     text-align: center;
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    width: 200px;
   }
-  .docIcon { font-size: 40px; margin-bottom: 12px; }
+  .docIcon { font-size: 32px; margin-bottom: 10px; }
   .docName {
     color: var(--text);
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
-    margin-bottom: 18px;
-    max-width: 320px;
+    margin-bottom: 14px;
     word-break: break-word;
   }
   .docViewBtn {
     display: inline-block;
     background: var(--accent);
     color: white;
-    padding: 10px 24px;
+    padding: 8px 18px;
     border-radius: 10px;
     text-decoration: none;
-    font-size: 13.5px;
+    font-size: 12.5px;
     font-weight: 600;
   }
   .docViewBtn:hover { opacity: 0.9; }
@@ -246,12 +253,7 @@
   <body>
     <a id="adminLink" href="/admin.html">Admin: manage documents</a>
 
-    <div id="docCard">
-  <div class="docIcon">📄</div>
-  <div class="docName">Latest_Updates_ADAS.pdf</div>
-  <a href="/view.html" target="_blank" class="docViewBtn">View Document</a>
-</div>
-
+    <div id="docCardContainer"></div>
     <!-- Floating launcher icon -->
     <button id="chatLauncher" aria-label="Open chat">
       💬
@@ -376,6 +378,30 @@
           input.focus();
         }
       });
+
+      async function loadDocumentCards() {
+  try {
+    const res = await fetch(API_BASE + "/admin/documents");
+    const docs = await res.json();
+    const container = document.getElementById("docCardContainer");
+    container.innerHTML = "";
+
+    docs.forEach(doc => {
+      const card = document.createElement("div");
+      card.className = "docCard";
+      card.innerHTML = `
+        <div class="docIcon">📄</div>
+        <div class="docName">${doc.doc_name}</div>
+        <a href="/view.html?doc=${encodeURIComponent(doc.doc_name)}" target="_blank" class="docViewBtn">View Document</a>
+      `;
+      container.appendChild(card);
+    });
+  } catch (err) {
+    console.error("Failed to load documents:", err);
+  }
+}
+
+loadDocumentCards();
     </script>
   </body>
 </html>
