@@ -14,6 +14,7 @@ Run with:
 
 import os
 import shutil
+import glob
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -93,6 +94,35 @@ async def chat(request: ChatRequest):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+DOCUMENTS_DIR = os.path.join(os.path.dirname(__file__), "documents")
+
+@app.on_event("startup")
+async def auto_ingest_permanent_documents():
+    """On server startup, index any documents in /documents that aren't already indexed."""
+    if not os.path.isdir(DOCUMENTS_DIR):
+        return
+
+    already_indexed = {doc["doc_name"] for doc in rag.list_documents()}
+
+    for file_path in glob.glob(os.path.join(DOCUMENTS_DIR, "*")):
+        filename = os.path.basename(file_path)
+        ext = filename.lower().rsplit(".", 1)[-1] if "." in filename else ""
+        if ext not in {"pdf", "docx", "txt"}:
+            continue
+        if filename in already_indexed:
+            print(f"Already indexed: {filename}")
+            continue
+        print(f"Auto-indexing permanent document: {filename}")
+        try:
+            result = rag.ingest_document(file_path, doc_name=filename)
+            print(f"Indexed {filename}: {result}")
+        except Exception as e:
+            print(f"Failed to auto-index {filename}: {e}")
+
+
+if os.path.isdir(DOCUMENTS_DIR):
+    app.mount("/documents", StaticFiles(directory=DOCUMENTS_DIR), name="documents")
 
 
 # Serve the simple frontend directly from FastAPI for convenience
