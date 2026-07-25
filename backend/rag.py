@@ -227,7 +227,20 @@ def answer_query(query: str, top_k: int = TOP_K) -> Dict:
     )
 
     prompt = f"CONTEXT:\n{context_block}\n\nQUESTION: {query}\n\nANSWER:"
-    response = model.generate_content(prompt)
+
+    max_retries = 3
+    response = None
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            break
+        except Exception as e:
+            if "429" in str(e) and attempt < max_retries - 1:
+                wait_time = 5 * (attempt + 1)  # 5s, 10s
+                print(f"Chat rate limit hit, waiting {wait_time}s before retry...")
+                time.sleep(wait_time)
+            else:
+                raise
 
     return {
         "answer": response.text.strip(),
