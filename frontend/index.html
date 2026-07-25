@@ -208,12 +208,50 @@
       #adminLink:hover {
         color: var(--accent);
       }
+
+      #docCard {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 40px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+  .docIcon { font-size: 40px; margin-bottom: 12px; }
+  .docName {
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 18px;
+    max-width: 320px;
+    word-break: break-word;
+  }
+  .docViewBtn {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    padding: 10px 24px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .docViewBtn:hover { opacity: 0.9; }
     </style>
   </head>
   <body>
     <a id="adminLink" href="/admin.html">Admin: manage documents</a>
 
-    <a id="pdfLink" href="/view.html" target="_blank" style="position:fixed;bottom:24px;left:180px;font-size:12px;color:#6b7280;text-decoration:none;z-index:1000;">📄 View source document</a>
+    <div id="docCard">
+  <div class="docIcon">📄</div>
+  <div class="docName">Latest_Updates_ADAS.pdf</div>
+  <a href="/view.html" target="_blank" class="docViewBtn">View Document</a>
+</div>
+
     <!-- Floating launcher icon -->
     <button id="chatLauncher" aria-label="Open chat">
       💬
