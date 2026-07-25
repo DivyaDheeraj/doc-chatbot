@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Document Chatbot</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2e37;
+    --accent: #5b8cff;
+    --text: #e7e9ee;
+    --muted: #9aa1ac;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #525659;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #pdfFrame {
+    width: 100%;
+    height: 100vh;
+    border: none;
+  }
+
+  #backLink {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    background: var(--panel);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    text-decoration: none;
+    z-index: 1001;
+    border: 1px solid var(--border);
+  }
+  #backLink:hover { border-color: var(--accent); }
+
+  /* ---- Floating launcher button ---- */
+  #chatLauncher {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    cursor: pointer;
+    font-size: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: transform 0.15s ease;
+  }
+  #chatLauncher:hover { transform: scale(1.08); }
+
+  /* ---- Chat window ---- */
+  #chatWindow {
+    position: fixed;
+    bottom: 100px;
+    right: 24px;
+    width: 360px;
+    height: 520px;
+    max-height: 75vh;
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.45);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 1000;
+    border: 1px solid var(--border);
+  }
+  #chatWindow.open { display: flex; }
+
+  #chatHeader {
+    padding: 14px 16px;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  #closeChat {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+  }
+
+  #chatMessages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .msg { display: flex; flex-direction: column; gap: 4px; max-width: 85%; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.bot { align-self: flex-start; align-items: flex-start; }
+  .bubble {
+    padding: 9px 12px;
+    border-radius: 12px;
+    line-height: 1.4;
+    font-size: 13.5px;
+    white-space: pre-wrap;
+  }
+  .msg.user .bubble { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+  .msg.bot .bubble { background: var(--panel); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .sources { font-size: 10.5px; color: var(--muted); }
+  .typing { color: var(--muted); font-size: 12.5px; font-style: italic; }
+
+  #chatInputBar {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  #queryInput {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 13.5px;
+    outline: none;
+  }
+  #queryInput:focus { border-color: var(--accent); }
+  #sendBtn {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13.5px;
+  }
+  #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<a id="backLink" href="/index.html">← Back to chat</a>
+
+<iframe id="pdfFrame" src="/documents/Latest_Updates_ADAS.pdf"></iframe>
+
+<button id="chatLauncher" aria-label="Open chat">💬</button>
+
+<div id="chatWindow">
+  <div id="chatHeader">
+    <div>Document Chatbot</div>
+    <button id="closeChat" aria-label="Close chat">✕</button>
+  </div>
+
+  <div id="chatMessages">
+    <div class="msg bot">
+      <div class="bubble">Hi! Ask me anything about this document.</div>
+    </div>
+  </div>
+
+  <form id="chatInputBar">
+    <input id="queryInput" type="text" placeholder="Ask a question..." autocomplete="off" />
+    <button type="submit" id="sendBtn">Send</button>
+  </form>
+</div>
+
+<script>
+const API_BASE = "";
+const launcher = document.getElementById("chatLauncher");
+const chatWindow = document.getElementById("chatWindow");
+const closeChat = document.getElementById("closeChat");
+const chat = document.getElementById("chatMessages");
+const form = document.getElementById("chatInputBar");
+const input = document.getElementById("queryInput");
+const sendBtn = document.getElementById("sendBtn");
+
+launcher.addEventListener("click", () => {
+  chatWindow.classList.toggle("open");
+  if (chatWindow.classList.contains("open")) {
+    input.focus();
+    chat.scrollTop = chat.scrollHeight;
+  }
+});
+
+closeChat.addEventListener("click", () => {
+  chatWindow.classList.remove("open");
+});
+
+function addMessage(role, text, sources) {
+  const msg = document.createElement("div");
+  msg.className = "msg " + role;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;
+  msg.appendChild(bubble);
+  if (sources && sources.length) {
+    const src = document.createElement("div");
+    src.className = "sources";
+    const unique = [...new Set(sources.map(s => s.doc_name))];
+    src.textContent = "Sources: " + unique.join(", ");
+    msg.appendChild(src);
+  }
+  chat.appendChild(msg);
+  chat.scrollTop = chat.scrollHeight;
+  return msg;
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const query = input.value.trim();
+  if (!query) return;
+
+  addMessage("user", query);
+  input.value = "";
+  sendBtn.disabled = true;
+
+  const typingMsg = addMessage("bot", "Thinking...");
+  typingMsg.querySelector(".bubble").classList.add("typing");
+
+  try {
+    const res = await fetch(API_BASE + "/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) throw new Error("Request failed: " + res.status);
+    const data = await res.json();
+    typingMsg.remove();
+    addMessage("bot", data.answer, data.sources);
+  } catch (err) {
+    typingMsg.remove();
+    addMessage("bot", "Error: could not reach the server.");
+    console.error(err);
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+});
+</script>
+
+</body>
+</html>
