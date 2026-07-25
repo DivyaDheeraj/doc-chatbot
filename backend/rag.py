@@ -187,13 +187,17 @@ in the document) — but only if that information is genuinely present in the CO
 """
 
 
-def retrieve_chunks(query: str, top_k: int = TOP_K) -> List[Dict]:
+def retrieve_chunks(query: str, top_k: int = TOP_K, doc_name: str = None) -> List[Dict]:
     query_embedding = embed_query(query)
 
-    results = _collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k,
-    )
+    query_kwargs = {
+        "query_embeddings": [query_embedding],
+        "n_results": top_k,
+    }
+    if doc_name:
+        query_kwargs["where"] = {"doc_name": doc_name}
+
+    results = _collection.query(**query_kwargs)
 
     chunks = []
     docs = results.get("documents", [[]])[0]
@@ -210,8 +214,8 @@ def retrieve_chunks(query: str, top_k: int = TOP_K) -> List[Dict]:
     return chunks
 
 
-def answer_query(query: str, top_k: int = TOP_K) -> Dict:
-    chunks = retrieve_chunks(query, top_k=top_k)
+def answer_query(query: str, top_k: int = TOP_K, doc_name: str = None) -> Dict:
+    chunks = retrieve_chunks(query, top_k=top_k, doc_name=doc_name)
 
     if not chunks:
         return {"answer": "Information not available.", "sources": []}

@@ -162,7 +162,7 @@
 
 <a id="backLink" href="/index.html">← Back to chat</a>
 
-<iframe id="pdfFrame" src="/documents/Latest_Updates_ADAS.pdf"></iframe>
+<iframe id="pdfFrame" src=""></iframe>
 
 <button id="chatLauncher" aria-label="Open chat">💬</button>
 
@@ -193,6 +193,27 @@ const chat = document.getElementById("chatMessages");
 const form = document.getElementById("chatInputBar");
 const input = document.getElementById("queryInput");
 const sendBtn = document.getElementById("sendBtn");
+
+const params = new URLSearchParams(window.location.search);
+const docName = params.get("doc");
+
+async function loadCorrectPdf() {
+  if (!docName) return;
+  const frame = document.getElementById("pdfFrame");
+  const uploadUrl = "/uploads/" + encodeURIComponent(docName);
+  const permanentUrl = "/documents/" + encodeURIComponent(docName);
+
+  try {
+    const res = await fetch(uploadUrl, { method: "HEAD" });
+    frame.src = res.ok ? uploadUrl : permanentUrl;
+  } catch {
+    frame.src = permanentUrl;
+  }
+
+  document.title = docName + " — Document Chatbot";
+}
+
+loadCorrectPdf();
 
 launcher.addEventListener("click", () => {
   chatWindow.classList.toggle("open");
@@ -241,7 +262,7 @@ form.addEventListener("submit", async (e) => {
     const res = await fetch(API_BASE + "/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, doc_name: docName }),
     });
     if (!res.ok) throw new Error("Request failed: " + res.status);
     const data = await res.json();

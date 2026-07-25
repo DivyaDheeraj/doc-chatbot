@@ -39,6 +39,7 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     query: str
+    doc_name: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -87,7 +88,7 @@ async def chat(request: ChatRequest):
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
-    result = rag.answer_query(request.query)
+    result = rag.answer_query(request.query, doc_name=request.doc_name)
     return result
 
 
@@ -123,6 +124,9 @@ async def auto_ingest_permanent_documents():
 
 if os.path.isdir(DOCUMENTS_DIR):
     app.mount("/documents", StaticFiles(directory=DOCUMENTS_DIR), name="documents")
+
+if os.path.isdir(UPLOAD_DIR):
+    app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
 # Serve the simple frontend directly from FastAPI for convenience
